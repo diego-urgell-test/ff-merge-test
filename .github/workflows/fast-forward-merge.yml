@@ -1,0 +1,80 @@
+name: "Fast-Forward Merge"
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  ff-merge:
+    runs-on: ubuntu-latest
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/ff-merge')
+    steps:
+      - name: Validate Branch
+        id: validate-branch
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GH_ACCESS_TOKEN }}
+          result-encoding: string
+          script: |
+            let {data: pr} = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            })
+            if (pr.head.ref != 'qa'){
+              message = '/ff-merge can only be used in qa branch!'
+              core.setFailed(message)
+              return message
+            }
+            return ''
+      - name: Catch Validation Error
+        if: always() && steps.validate-branch.outputs.result
+        run: |
+          echo "error=${{steps.validate-branch.outputs.result}}" >> $GITHUB_ENV
+      - name: Clone Repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: qa
+          fetch-depth: 0
+      - name: Fast-Forward Merge
+        run: |
+          set +e
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "GitHub Actions [Bot]"
+          git pull 
+          git checkout main 
+          git merge qa --ff-only
+          if [ $? -ne 0 ]
+            then
+              echo "error=Unable to merge with fast forward! \
+                All feature branches must be based on main, and conflicts should be solved." >> $GITHUB_ENV
+              exit 1
+          fi
+      - name: Push Merged Branch
+        run: |
+          git config --global url."https://${{secrets.GH_ACCESS_TOKEN}}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+          git push
+          if [ $? -ne 0 ]
+            then
+              echo "error=Unable to push to main! Make sure all required checks are successful and you have two PR \
+                approvals, with at least one of them coming from a code owner." >> $GITHUB_ENV
+              exit 1
+          fi
+      - name: Notify Outcome
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            let message = '${{ env.error }}' === '' ? 'Successfully merged PR with fast forward!' : '${{ env.error }}'
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: message,
+            })
