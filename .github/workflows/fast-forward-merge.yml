@@ -57,7 +57,8 @@ jobs:
           fi
       - name: Push Merged Branch
         run: |
-          git config --global url."https://${{secrets.GH_ACCESS_TOKEN}}@github.com/".insteadOf "https://github.com/"
+          git remote remove origin
+          git remote add origin https://${{secrets.GH_ACCESS_TOKEN}}@github.com/diego-urgell-test/ff-merge-test.git          
           git push
           if [ $? -ne 0 ]
             then
