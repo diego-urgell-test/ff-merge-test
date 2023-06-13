@@ -38,7 +38,7 @@ jobs:
       - name: Clone Repository
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GH_ACCESS_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           ref: qa
           fetch-depth: 0
       - name: Fast-Forward Merge
@@ -56,8 +56,8 @@ jobs:
               exit 1
           fi
       - name: Push Merged Branch
-        run: |     
-          git push
+        run: |
+          git push https://diego-urgell:${{GH_ACCESS_TOKEN}}@github.com/diego-urgell-test/ff-merge-test.git
           if [ $? -ne 0 ]
             then
               echo "error=Unable to push to main! Make sure all required checks are successful and you have two PR \
