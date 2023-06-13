@@ -41,6 +41,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: qa
           fetch-depth: 0
+          persist-credentials: false
       - name: Fast-Forward Merge
         run: |
           set +e
