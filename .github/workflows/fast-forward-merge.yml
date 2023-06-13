@@ -57,7 +57,7 @@ jobs:
           fi
       - name: Push Merged Branch
         run: |
-          git push https://diego-urgell:${{GH_ACCESS_TOKEN}}@github.com/diego-urgell-test/ff-merge-test.git
+          git push https://diego-urgell:${{secrets.GH_ACCESS_TOKEN}}@github.com/diego-urgell-test/ff-merge-test.git
           if [ $? -ne 0 ]
             then
               echo "error=Unable to push to main! Make sure all required checks are successful and you have two PR \
